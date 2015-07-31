@@ -19,3 +19,7 @@ Beginlearning
 
     Shared lectures and notes for julyedu.com
 
+5. kaggle_cat_dog
+
+   https://www.kaggle.com/c/dogs-vs-cats
+
