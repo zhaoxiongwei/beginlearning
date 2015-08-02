@@ -7,7 +7,7 @@ for i = 0, 12499 do
   sample.y = 1
   sample.fileName = "./samples/dog_" .. i .. ".png"
   table.insert(allSamples, sample)
-  
+
   sample = {}
   sample.y = 2
   sample.fileName = "./samples/cat_" .. i .. ".png"

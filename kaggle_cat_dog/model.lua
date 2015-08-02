@@ -17,8 +17,8 @@ model:add(nn.ReLU())
 model:add(nn.SpatialMaxPooling(2, 2))
 model:add(nn.Reshape(32*8*8))
 model:add(nn.Linear(32*8*8, 256))
-model:add(nn.Linear(256, 2))
-model:add(nn.LogSoftMax())
+model:add(nn.Linear(256, 1))
+model:add(nn.Sigmoid())
 
 return model
 
