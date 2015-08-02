@@ -26,7 +26,7 @@ end
 -- 设计训练函数，每个epoch进行一次volidation操作
 optimMethod = optim.asgd
 optimState = {
-  eta0 = 0.005,
+  eta0 = 0.02,
   t0 = #trainSamples
 }
 
