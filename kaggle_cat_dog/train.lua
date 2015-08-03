@@ -1,12 +1,25 @@
 require('nn')
 require('optim')
 require('xlua')
-require('gnuplot')
+--require('gnuplot')
+
+_CUDA_ = true
+
+if ( _CUDA_ ) then
+  require('cunn')
+end
+
 
 torch.setdefaulttensortype('torch.FloatTensor')
 
 model = require('./model.lua')
 criterion = nn.BCECriterion() 
+
+if ( _CUDA_ ) then
+  model:cuda()
+  criterion:cuda()
+end
+
 allSamples, getSampleData = require('./samples.lua')
 trainSamples = {}
 valSamples = {}
@@ -26,7 +39,7 @@ end
 -- 设计训练函数，每个epoch进行一次volidation操作
 optimMethod = optim.asgd
 optimState = {
-  eta0 = 0.02,
+  eta0 = 0.05,
   t0 = #trainSamples
 }
 
@@ -50,10 +63,19 @@ doTrain = function(batchSize)
     local y2 = torch.Tensor(1)
     y2[1] = 1
 
+    if ( _CUDA_ ) then
+      y1 = y1:cuda()
+      y2 = y2:cuda()
+    end
+
     local f = 0 --error均值
     for i=itemIndex, itemIndex+batchSize-1 do
       local targetIndex = i % #trainSamples + 1
       local targetSample = getSampleData( trainSamples[targetIndex].fileName )
+      if ( _CUDA_ ) then
+        targetSample = targetSample:cuda()
+      end
+      
       local y = nil
       if ( trainSamples[targetIndex].y == 1) then
         y = y1
@@ -69,7 +91,6 @@ doTrain = function(batchSize)
       -- 后向计算估计 df/dw
       local df_do = criterion:backward(output, y)
       model:backward(targetSample, df_do)
-
     end
 
     gradParameters:div(batchSize)
@@ -113,10 +134,11 @@ function Table2Tensor(t1)
 end
 
 local allLog = {}
-for i=1,10 do
+for i=1,15 do
   local errLog = doTrain(32)
   TableConcat(allLog, errLog)
-  gnuplot.plot( Table2Tensor(allLog) )
+  --gnuplot.plot( Table2Tensor(allLog) )
 end
 
+torch.save('allLog.dat',  Table2Tensor(allLog))
 
