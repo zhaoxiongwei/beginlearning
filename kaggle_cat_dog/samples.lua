@@ -14,11 +14,27 @@ for i = 0, 12499 do
   table.insert(allSamples, sample)
 end
 
-local getSampleData = function(fileName) 
+--[[
+local getSampleData = function(sample)
+  if ( sample.x == nil ) then
+    local fileName = sample.fileName
+    local img = image.loadPNG(fileName, 3):float();
+    img = img * 256
+    img = img - 128
+    sample.x = img
+  end
+  return sample.x
+end
+--]]
+
+local getSampleData = function(sample)
+  local fileName = sample.fileName
   local img = image.loadPNG(fileName, 3):float();
   img = img * 256
   img = img - 128
   return img
 end
+
+
 
 return allSamples, getSampleData

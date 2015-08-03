@@ -13,7 +13,9 @@ end
 torch.setdefaulttensortype('torch.FloatTensor')
 
 model = require('./model.lua')
+
 criterion = nn.BCECriterion() 
+
 
 if ( _CUDA_ ) then
   model:cuda()
@@ -27,7 +29,7 @@ valSamples = {}
 -- 分配训练样本和验证样本
 do
   local shuffer = torch.randperm(#allSamples)
-  local trainNumber = math.floor( #allSamples * 0.8)
+  local trainNumber = math.floor( #allSamples * 0.90)
   for i=1, trainNumber do
     trainSamples[i] = allSamples[ shuffer[i] ];
   end
@@ -42,7 +44,6 @@ optimState = {
   eta0 = 0.05,
   t0 = #trainSamples
 }
-
 
 doTrain = function(batchSize)
 
@@ -71,7 +72,7 @@ doTrain = function(batchSize)
     local f = 0 --error均值
     for i=itemIndex, itemIndex+batchSize-1 do
       local targetIndex = i % #trainSamples + 1
-      local targetSample = getSampleData( trainSamples[targetIndex].fileName )
+      local targetSample = getSampleData( trainSamples[targetIndex] )
       if ( _CUDA_ ) then
         targetSample = targetSample:cuda()
       end
@@ -118,27 +119,50 @@ doTrain = function(batchSize)
   return errLog
 end
 
-function TableConcat(t1,t2)
-  for i=1,#t2 do
-    t1[#t1+1] = t2[i]
+doVerify = function() 
+  model:evaluate()
+  
+  local pred = 0
+  for i=1,#valSamples do
+    local targetSample = getSampleData( valSamples[i] )
+    if ( _CUDA_ ) then
+      targetSample = targetSample:cuda()
+    end
+   
+    local output = model:forward(targetSample)
+
+    if ( output[1] < 0.5 and valSamples[i].y == 1) then
+      pred = pred + 1
+    elseif ( output[1] > 0.5 and valSamples[i].y == 2) then
+      pred = pred + 1
+    end
   end
-  return t1
+
+  return pred / #valSamples
 end
 
-function Table2Tensor(t1) 
-  local t2 = torch.Tensor(#t1)
-  for i=1,#t1 do
-    t2[i] = t1[i]
+function main(loop)
+  local function Table2Tensor(t1) 
+    local t2 = torch.Tensor(#t1)
+    for i=1,#t1 do
+      t2[i] = t1[i]
+    end
+    return t2
   end
-  return t2
-end
 
-local allLog = {}
-for i=1,15 do
-  local errLog = doTrain(32)
-  TableConcat(allLog, errLog)
-  --gnuplot.plot( Table2Tensor(allLog) )
-end
+  local allLog = {}
+  local bestScore = 0
+  for i= 1, loop do
+    local errLog = doTrain(32)
+    table.insert(allLog, errLog[#errLog])
+    local score = doVerify()
+    if ( score > bestScore ) then
+      bestScore = score
+      torch.save('model.dat', model)
+    end
+    print("====> Pred = " .. score .. " BestScore = " .. bestScore)
+  end
+  torch.save('allLog.dat',  Table2Tensor(allLog))
+end 
 
-torch.save('allLog.dat',  Table2Tensor(allLog))
 
