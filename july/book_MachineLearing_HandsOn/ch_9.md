@@ -54,3 +54,13 @@
 
 ## 使用 Spring XD
 ---
+本章专门介绍为实时系统而设计的Spring XD框架，该框架大大简化了数据摄取、处理以及输出整个开发流畅。
+
+**注意:** 所谓数据摄取，指的是获得多个源的数据，因此使用Sprint XD可以开发同时处理日志数据、Twitter推文以及RSS种子的应用。
+
+Spring XD runs either on a single server or on a cluster of machines in dis- tributed mode. The examples in this chapter use a single server. The Spring XD software is released under the Apache 2 License and is completely open source, so you are free to download and use it with no restrictions. Spring has done a very good job of including the majority of common use cases in the base release; it’s a good starting point to show how real-time analytics can be built quickly and with minimum effort.
+If you are aware how the UNIX pipe commands work, then you’ll have an easy time understanding how Spring XD functions. If you’re not familiar with UNIX pipe commands then please read on; I explain how the basic command pipeline and data streaming in UNIX and Spring XD work.
+
+
+Spring XD可以运行在一台单一的服务器上，也支持以分布式的形式运行在集群上。本章的例子只使用单一的服务器。
+Spring XD软件实在Apache 2许可证下发布的开源软件，因此你可以自由下载并且无限制的使用（译者注：必须符合Apache 2的权利申明）。
