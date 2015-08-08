@@ -53,14 +53,100 @@
 二级存储只应该被用来加速系统恢复和重启内存，或者用来为深度训练提供大量的数据用。
 
 ## 使用 Spring XD
----
+--
 本章专门介绍为实时系统而设计的Spring XD框架，该框架大大简化了数据摄取、处理以及输出整个开发流畅。
 
 **注意:** 所谓数据摄取，指的是获得多个源的数据，因此使用Sprint XD可以开发同时处理日志数据、Twitter推文以及RSS种子的应用。
 
-Spring XD runs either on a single server or on a cluster of machines in dis- tributed mode. The examples in this chapter use a single server. The Spring XD software is released under the Apache 2 License and is completely open source, so you are free to download and use it with no restrictions. Spring has done a very good job of including the majority of common use cases in the base release; it’s a good starting point to show how real-time analytics can be built quickly and with minimum effort.
-If you are aware how the UNIX pipe commands work, then you’ll have an easy time understanding how Spring XD functions. If you’re not familiar with UNIX pipe commands then please read on; I explain how the basic command pipeline and data streaming in UNIX and Spring XD work.
-
-
 Spring XD可以运行在一台单一的服务器上，也支持以分布式的形式运行在集群上。本章的例子只使用单一的服务器。
-Spring XD软件实在Apache 2许可证下发布的开源软件，因此你可以自由下载并且无限制的使用（译者注：必须符合Apache 2的权利申明）。
+Spring XD软件实在Apache 2许可证下发布的开源软件，因此你可以自由下载并且无限制的使用（译者注：必须符合Apache 2许可证）。
+Sprint XD涵盖主要的实时数据主要应用方式，是一个用最少的代码快速搭建实时数据分析的不错的起点。
+
+假如你了解UNIX管道命令时如何工作的，那么你将很容易理解Spring XD的工作方式。假如你还不熟悉UNXI的管道命令，
+接下来我会解释一下UNIX管道的基础命令以及以及Spring XD中的数据流。
+
+### Spring XD 数据流
+
+Spring XD系统是一个UNIX命令管道流的一个模拟：一个无限长的文本流通过命令过滤，经过某种处理之后把流传递给下一个命令。
+比如，在UNIX中，我想在一个或者多个文件中统计字母、单词以及文本行的出现频率，我可以对文件运行cat命令并且把流输出给wc命令：
+
+```cat *.txt | wc```
+
+把这一概念延伸一下，我假如需要在输出结果增加一个带标注的报警提示，我会这样的命令
+
+```cat *.txt | sed 's/^/(lines, words, characters) =/' ```
+
+Spring XD中的数据流工作方式和UNIX命令管道类似。服务器读取输入数据，在不同步骤中处理数据，结果数据被发送到特定目的地。
+处理步骤是可选的，但这些处理步骤对机器学习任务来说非常有用。单一的数据流不被仅限于一个处理步骤，数据流可以像链条一样被串联。
+
+
+在本章的后面，我们提供一个完整的教程，演示了如何配置数据流以及如何处理它们。首先你需要理解管道式数据流的核心组件，以及Spring XD是如何使用的。
+
+### 输入源, 输出目的, 处理单元
+
+Spring XD数据流有三个主要的组件：一个输入源（Input Source), 一个可选的处理单元（Processor），以及一个输出目的（Sink)。
+
+#### 输入源
+
+通过内置的集成适配器（Integration Adaptors），XD系统提供了多种直接使用的输入源。这些输入源涵盖了多种互联网应用协议、日志输出以及文件处理等。
+表9-1 总结这些不同类型的输入源：
+
+* **Table 9-1**: Spring XD中不同的输入源
+
+| 输入源名字 | 描述 |
+| --------- |:----:|
+| HTTP      | 从HTTP请求中读取数据输入，比如，网页，RSS源或者REST API调用 |
+| TCP       | 处理TCP socket的输出数据 |
+| Mail      | 处理从IMAP服务器读取的到达邮件 |
+| JMS       | 从Java Message服务器中读取到达信息 |
+| RabbitMQ  | 从RabbitMQ服务器中订阅和读取到达信息 |
+| Twitter Stream  | 使用Twitter的数据流API，读取每条推文对应的JSON格式的数据|
+| Twitter Search  | 使用Twitter的搜索API，读取每条推文对应的JSON格式的数据|
+| File       | 从文件中读取数据 |
+| Tail       | 将某个指定的文件的尾输出作为输入数据 |
+| MQTT       | 链接MQTT服务器，订阅和接收电报数据 |
+| Time       | 触发一个周期的“心跳”时间戳，每个时间戳的值为Spring XD所运行的服务器当前时间，周期是可设置的 |
+| Gemfire       | 监听从Gemfire服务器发出的区域事件或者连续查询 |
+
+上面的每一个输入源都携带一个配置信息表，这些配置信息在定义输入源的时候必须设置好。后续章节后将说明如何使用以及配置其中一些输入源。
+
+#### 输出目的
+
+为了最后使用，一个系统必须输出最后的目的数据。最常见的输出目的是日志文件或者数据库表。
+Spring XD除了支持日志文件和数据库表之外，也支持一起他输出目的。表9-2列出了这些输出目的。
+
+* **Table 9-2**: Spring XD中的输出目的
+
+| 输入目的名字 | 描述 |
+| --------- |:----:|
+| File | 输出总是追加到某个文件尾 |
+| Log  | 使用内置的日志函数，输出信息按INFO/WARN/ERROR分类，保存为Log4j的形式，并且携带时间戳 |
+| JDBC | 讲输出保存到某个关系数据库中，这个数据可以通过JDBC驱动，默认的数据库是基于内存的HSQL |
+| Mail | 将输出路由到SMTP邮件服务器 |
+| TCP  | 将输出路由到TCP socket，比如把输出路由到 `netcat` UNIX命令 |
+| HDFS | 将输出保存到Hadoop分布式文件系统中，第十章将详细说明 |
+| RabbitMQ | 将输出发送到RabbitMQ服务器 |
+| Splunk Server | Spring XD讲输出转换为SplunkEvent，并通过TCP发送到Splunk服务器 |
+| Gemfire Server | 数据将被写入到一个正在运行的Gemfire服务器中，支持标准服务器也支持JSON服务器 |
+| MQTT | 输出的电信报文被发送到一个MQTT服务器中 |
+
+在Sprin Integration工程中，也可以创建其他类型的输出目的。
+
+#### 处理单元
+
+到目前为止，本章已经说明了输入和输出的数据类型。你可以很容易的创建Spring XD输入源读取输入数据并且通过管道把他们指定输出到一个输出目睹。
+处理单元做位于二者之间，在管道通过数据的时候，允许用户加入自己的数据处理、解析以及分析。
+Spring XD内置了多种直接可用的处理单元（查看表9-3）；它们提供基础的过滤、数据拆分以及字符串处理。
+
+* **Table 9-3**: Spring XD 内置的处理单元
+
+| 处理单元名字 | 描述 |
+| --------- |:----:|
+| Filters | 过滤器，过滤行为类似于grep表达式的作用。过滤器可以是一个Spring Expression Language(SpEL)表达式也可以是一个Groovy脚本|
+| JSON Field Value | 保留那些JSON的指定字段值符合匹配值的纪录 |
+| JSON Field Extractor | 提取JSON的某些字段的值，并把值做出输出流 |
+| Transform | 对输入数据内容做转换作为输出流 |
+| Split | 基于表达式，将输入消息分拆为几个数据 |
+| Aggregator | 复制多次消息体，生产新的数据 |
+
+尽管Sprin XD已经内置了不少的输入源、输出目的以及处理单元，但是还是大量需要定制的选型，因此我们常常需要开发和创建新的组件。
